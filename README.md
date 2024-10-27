@@ -56,5 +56,4 @@ View the complete codebase on GitHub: [Your GitHub Repository](https://github.co
 
 ---
 
-For questions, feel free to reach out! 
-```
+For questions, feel free to reach out! Email : anniegirdhar@gmail.com
