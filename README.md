@@ -52,7 +52,7 @@ docker run --name mongodb -d -p 27017:27017 mongo
 
 ## Codebase
 
-View the complete codebase on GitHub: [Your GitHub Repository](https://github.com/anushka81/Rule-Engine-with-AST).
+View the complete codebase on GitHub: [GitHub Repository](https://github.com/anushka81/Rule-Engine-with-AST).
 
 ---
 
