@@ -56,4 +56,4 @@ View the complete codebase on GitHub: [GitHub Repository](https://github.com/anu
 
 ---
 
-For questions, feel free to reach out! Email : anniegirdhar@gmail.com
+For questions, feel free to reach out! Email : anniegirdhar08@gmail.com
