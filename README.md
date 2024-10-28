@@ -61,7 +61,7 @@ docker run --name mongodb -d -p 27017:27017 mongo
 
 - **Combined Rule Name**: `Combined Age and Income Check`
 
-    rule_ids: rule1_id, rule2_id
+    rule_ids: rule1_id,rule2_id (don't add any gaps)
 
 - **Rule ID to evaluate**: `combined_rule_id`
 - **User Data (JSON format)**:
