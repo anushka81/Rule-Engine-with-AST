@@ -57,7 +57,7 @@ function App() {
   return (
     <Box sx={{ padding: '20px' }}>
         <Typography align="center" variant="h4" component="h1" gutterBottom paddingBottom={6}>
-          Abstract Syntax Tree
+          Rule Engine with Abstract Syntax Tree
         </Typography>
 
         <Box display="flex" justifyContent="center" mb={2} paddingBottom={7}>

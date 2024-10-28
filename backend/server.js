@@ -28,97 +28,122 @@ app.get('/', (req, res) => {
     res.send('Welcome to the Rule Engine API');
 });
 
-// Adjust parseRule to return JSON structures directly
 function parseRule(ruleString) {
-    console.log('Input ruleString:', ruleString);
-    const regex = /(\w+)([><=]{1,2})(\d+)/g;
-    let match;
+    const operators = /\s+(AND|OR)\s+/;
+    const conditions = ruleString.split(operators); // Split on AND/OR, keeping operators
     const nodes = [];
 
-    while ((match = regex.exec(ruleString)) !== null) {
-        const attribute = match[1];
-        const operator = match[2];
-        const value = match[3];
-        const operandNode = { type: 'operand', value: `${attribute} ${operator} ${value}` };
-        console.log('Match found:', { attribute, operator, value });
-        nodes.push(operandNode);
-    }
+    // Create operand nodes from conditions
+    for (let i = 0; i < conditions.length; i++) {
+        const condition = conditions[i].trim();
 
-    console.log('Parsed nodes:', nodes);
+        if (condition === "AND" || condition === "OR") {
+            nodes.push({ type: 'operator', value: condition });
+        } else {
+            // Parse condition into operand node
+            const regex = /(\w+)\s*([><=!]+)\s*([\w\d]+)/;
+            const match = condition.match(regex);
 
-    if (nodes.length > 1) {
-        let currentNode = nodes[0];
-        for (let i = 1; i < nodes.length; i++) {
-            currentNode = { type: 'operator', value: 'AND', left: currentNode, right: nodes[i] };
+            if (match) {
+                const [, attribute, operator, value] = match;
+                nodes.push({
+                    type: 'operand',
+                    value: { attribute, operator, value }
+                });
+            } else {
+                console.error(`Invalid condition format: ${condition}`);
+            }
         }
-        return currentNode;
     }
-    return nodes[0];
+
+    // Construct the AST
+    let currentNode = nodes[0];
+    for (let i = 1; i < nodes.length; i += 2) {
+        const operatorNode = nodes[i];
+        const rightOperand = nodes[i + 1];
+
+        if (!rightOperand) break;
+
+        currentNode = {
+            type: 'operator',
+            value: operatorNode.value,
+            left: currentNode,
+            right: rightOperand
+        };
+    }
+
+    return currentNode;
 }
 
 function evaluateAST(ast, userData) {
-    console.log('Input AST:', ast);
+    console.log('Input AST:', JSON.stringify(ast, null, 2));
     console.log('Input userData:', userData);
 
-    // Use ASTq to adapt and query the AST
+    // ASTq adapter configuration
     astq.adapter({
         taste: (node) => typeof node === 'object' && node.type,
         getChildNodes: (node) => [node.left, node.right].filter(Boolean),
         getNodeType: (node) => node.type
     });
 
-    // Query for operand nodes in the AST
-    const query = "//operand";
-    const nodes = astq.query(ast, query);
+    // Recursive function to evaluate each node
+    function evaluateNode(node) {
+        if (node.type === 'operand') {
+            // Check if node.value is an object with expected properties
+            if (typeof node.value !== 'object' || !node.value.attribute || !node.value.operator || !node.value.value) {
+                console.error(`Unexpected structure for node.value:`, node);
+                return false;
+            }
 
-    // Evaluate each operand node
-    for (const node of nodes) {
-        const [attr, operator, value] = node.value.split(' ');
+            const { attribute, operator, value } = node.value;
 
-        // Ensure the attribute exists in userData
-        if (!(attr in userData)) {
-            console.warn(`Attribute ${attr} not found in userData.`);
-            return false; // or handle as per your requirement
+            // Ensure the attribute exists in userData
+            if (!(attribute in userData)) {
+                console.warn(`Attribute ${attribute} not found in userData.`);
+                return false; // Attribute missing, treat as failed condition
+            }
+
+            const userValue = userData[attribute].toString();
+            const ruleValue = value.toString();
+
+            // Evaluate based on the operator
+            let conditionMet = false;
+            switch (operator) {
+                case '>': conditionMet = userValue > ruleValue; break;
+                case '<': conditionMet = userValue < ruleValue; break;
+                case '>=': conditionMet = userValue >= ruleValue; break;
+                case '<=': conditionMet = userValue <= ruleValue; break;
+                case '==': conditionMet = userValue == ruleValue; break;
+                case '!=': conditionMet = userValue != ruleValue; break;
+                default:
+                    console.error(`Unsupported operator: ${operator}`);
+                    return false;
+            }
+
+            // Log the evaluation result
+            console.log(`Evaluating: ${attribute} ${operator} ${value} => ${conditionMet}`);
+            return conditionMet;
+        } else if (node.type === 'operator') {
+            const leftResult = evaluateNode(node.left);
+            const rightResult = evaluateNode(node.right);
+
+            // Combine results based on the operator
+            if (node.value === 'AND') {
+                return leftResult && rightResult;
+            } else if (node.value === 'OR') {
+                return leftResult || rightResult;
+            } else {
+                console.error(`Unsupported logical operator: ${node.value}`);
+                return false;
+            }
         }
-
-        const userValue = parseFloat(userData[attr]);
-        const ruleValue = parseFloat(value);
-
-        // Evaluate based on the operator
-        let conditionMet = false;
-        switch (operator) {
-            case '>':
-                conditionMet = userValue > ruleValue;
-                break;
-            case '<':
-                conditionMet = userValue < ruleValue;
-                break;
-            case '>=':
-                conditionMet = userValue >= ruleValue;
-                break;
-            case '<=':
-                conditionMet = userValue <= ruleValue;
-                break;
-            case '==':
-                conditionMet = userValue == ruleValue; 
-                break;
-            case '!=':
-                conditionMet = userValue != ruleValue;
-                break;
-            default:
-                console.error(`Unsupported operator: ${operator}`);
-                return false; // or handle as needed
-        }
-
-        // If any condition is false, return false
-        if (!conditionMet) {
-            console.log(`Condition failed for ${node.value}: ${userValue} ${operator} ${value}`);
-            return false;
-        }
+        return false;
     }
 
-    // All conditions are satisfied
-    return true;
+    // Start evaluation from the root node
+    const result = evaluateNode(ast);
+    console.log('Evaluation result:', result);
+    return result;
 }
 
 // Combine rules using ASTq queries
@@ -194,7 +219,6 @@ app.post('/api/combine_rules', async (req, res) => {
 });
 
 // Evaluate
-
 // POST /api/evaluate_rule
 app.post('/api/evaluate_rule', async (req, res) => {
     const { rule_id, user_data } = req.body;
