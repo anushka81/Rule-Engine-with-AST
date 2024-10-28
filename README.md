@@ -1,3 +1,5 @@
+---
+
 # Rule Engine with AST
 
 ## Overview
@@ -49,6 +51,37 @@ npm start
 docker run --name mongodb -d -p 27017:27017 mongo
 ```
 
+## Example for Testing the Model
+
+- **Rule Name**: `Age and City Check`
+- **Rule String**: `age > 30 AND city == NY`
+
+- **Rule Name**: `Income Check`
+- **Rule String**: `income >= 50000`
+
+- **Combined Rule Name**: `Combined Age and Income Check`
+
+    rule_ids: rule1_id, rule2_id
+
+- **Rule ID to evaluate**: `combined_rule_id`
+- **User Data (JSON format)**:
+```json
+{
+    "age": 35,
+    "city": "NY",
+    "income": 60000
+}
+```
+This will return true
+
+```json
+{
+    "age": 29,
+    "city": "NY",
+    "income": 50000
+}
+```
+This will return false
 
 ## Codebase
 
@@ -56,4 +89,6 @@ View the complete codebase on GitHub: [GitHub Repository](https://github.com/anu
 
 ---
 
-For questions, feel free to reach out! Email : anniegirdhar08@gmail.com
+For questions, feel free to reach out! Email: anniegirdhar08@gmail.com
+
+--- 
